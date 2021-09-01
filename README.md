@@ -7,25 +7,6 @@ Connecting the Windows platform with the beautiful Dart language. Can be used in
 ### Goals:
 Cover the range of low-level `windows` `api` by wrapping them in high-level `wrappers`.
 
-## Plan:
- - **Wrappers**
-    - [ ] Window
-        - [X] NativeWindow
-        - [ ] GrabberWindow - *allows to draw and control any native window inside the flutter application*
-        - [ ] DialogWindow - *real dialog boxes without multiple flutterEngine instances*
-    - [X] FlutterEngine
-    - [ ] DartEngine
-    - [ ] RegEdit
-    - [ ] Print
-    - [ ] Dialogs - *File, Folder*
-    - [ ] Power
-    - [ ] Screen
-    - [ ] Media Foundation
- - **Utilities**
-    - [ ] ```win: create [flutter | service | app]``` - creates an application skeleton
-    - [ ] ```win: run``` - launch a flutter application
-    - [ ] ```win: build [--single]``` - build a flutter application or pack it into an installer
-
 ### Example
 | `example` | description | show|
 | --- | --- | --- |
