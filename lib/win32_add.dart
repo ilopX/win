@@ -20,7 +20,12 @@ const WM_DPICHANGED_AFTERPARENT = 0x02E3;
 /// dimensions other than the default.
 const WM_GETDPISCALEDSIZE = 0x02E4;
 
+const INFINITE = 4294967295;
+
+
+const GW_OWNER = 4;
+
 final _gdi32 = DynamicLibrary.open('gdi32.dll');
 
 final FillPath =
-_gdi32.lookupFunction<Int32 Function(Int32), int Function(int)>('FillPath');
+    _gdi32.lookupFunction<Int32 Function(Int32), int Function(int)>('FillPath');
