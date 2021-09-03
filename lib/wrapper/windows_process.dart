@@ -57,54 +57,6 @@ class WindowsProcess {
 
   /// get top window of the current process
   Hwnd? get topWindow {
-    final data = calloc<EnumWindowsData>()
-      ..ref.hwnd = 0
-      ..ref.process_id = id;
-
-    final callback = Pointer.fromFunction<EnumWindowsProc>(
-      _enumWindowsCallback,
-      0,
-    );
-
-    try {
-      while (data.ref.hwnd == 0) {
-        EnumWindows(callback, data.address);
-      }
-    } finally {
-      free(data);
-    }
-
-    return Hwnd.fomHandle(data.ref.hwnd);
+    return Hwnd.fromProcessID(id, wait: true);
   }
-
-  static int _enumWindowsCallback(int hwnd, int lParam) {
-    final data = Pointer<EnumWindowsData>.fromAddress(lParam);
-
-    final process_id = calloc<Uint32>();
-    try {
-      GetWindowThreadProcessId(hwnd, process_id);
-
-      if (process_id.value != data.ref.process_id) {
-        return TRUE;
-      }
-    } finally {
-      free(process_id);
-    }
-
-    final own = GetWindow(hwnd, GW_OWNER);
-    if (own != 0) {
-      return TRUE;
-    }
-
-    data.ref.hwnd = hwnd;
-    return FALSE; // stop enums
-  }
-}
-
-class EnumWindowsData extends Struct {
-  @IntPtr()
-  external int hwnd;
-
-  @IntPtr()
-  external int process_id;
 }

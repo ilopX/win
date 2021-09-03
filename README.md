@@ -1,3 +1,5 @@
+**This is project in a very experimental stage**
+
 Connecting the Windows platform with the beautiful Dart language. Can be used inside or without flutter application.
 
 ### Peculiarities:
