@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:ffi';
+import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
 import 'package:win/win32_add.dart';
@@ -65,6 +67,9 @@ abstract class Hwnd {
     return FALSE; // stop enums
   }
 
+  static AsyncHwnd fromMainWindow() {
+    return AsyncHwnd(Hwnd.fromProcessID(GetCurrentProcessId())!.handle);
+  }
 
   void destroy() => DestroyWindow(handle);
 
@@ -107,24 +112,14 @@ abstract class Hwnd {
 
   set rect(Rect newRect) {
     SetWindowPos(
-        handle,
-        HWND_TOP,
-
-        newRect.left,
-        newRect.top,
-        newRect.width,
-        newRect.height,
-        SWP_SHOWWINDOW);
-
-    // SetWindowPos(
-    //   handle,
-    //   HWND_TOP,
-    //   newRect.left,
-    //   newRect.top,
-    //   newRect.width,
-    //   newRect.height,
-    //   SWP_NOZORDER | SWP_NOACTIVATE,
-    // );
+      handle,
+      HWND_TOP,
+      newRect.left,
+      newRect.top,
+      newRect.width,
+      newRect.height,
+      SWP_NOZORDER | SWP_NOACTIVATE,
+    );
   }
 
   Rect get clientRect {
@@ -142,7 +137,7 @@ abstract class Hwnd {
     rect = Rect.fromXYWH(pos.x, pos.y, thisRect.width, thisRect.height);
   }
 
-  Size get size => clientRect.size;
+  Size get size => rect.size;
 
   set size(Size newSize) {
     final thisRect = rect;
@@ -151,6 +146,14 @@ abstract class Hwnd {
       thisRect.top,
       newSize.width,
       newSize.height,
+    );
+  }
+
+  void center() {
+    final thisRect = rect;
+    rect = centredOfScreenRect(
+      thisRect.width,
+      thisRect.height,
     );
   }
 
@@ -189,4 +192,61 @@ class EnumWindowsData extends Struct {
 
   @IntPtr()
   external int process_id;
+}
+
+class AsyncHwnd extends Hwnd {
+  @override
+  final int handle;
+
+  AsyncHwnd(this.handle) {
+    Isolate.spawn(_thread, port.sendPort);
+    port.listen((message) {
+      if (message is SendPort) {
+        threadPort = message;
+        threadPort!.send(handle);
+      } else if (message == 'ready') {
+        _ready.complete();
+      }
+    });
+  }
+
+  var _ready = Completer();
+
+  Future<void> get ready => _ready.future;
+
+  @override
+  set rect(Rect newRect) => threadPort!.send(newRect);
+
+  @override
+  set size(Size newSize) => threadPort!.send(newSize);
+
+
+  final port = ReceivePort();
+
+  void dispose() {
+    threadPort!.send('close');
+    port.close();
+  }
+
+  SendPort? threadPort;
+
+
+  static void _thread(SendPort port) {
+    final receive = ReceivePort();
+    port.send(receive.sendPort);
+    late Hwnd wnd;
+
+    receive.listen((message) {
+      if (message is Size) {
+        wnd.size = message;
+      } else if (message is Rect){
+        wnd.rect = message;
+      } else if (message is int) {
+        wnd = Hwnd.fomHandle(message);
+        port.send('ready');
+      } else if(message == 'close'){
+        receive.close();
+      }
+    });
+  }
 }

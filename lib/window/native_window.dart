@@ -8,7 +8,6 @@ import 'window_events.dart';
 import 'window_registry.dart';
 
 import 'native_app.dart';
-import '../tools/primitives.dart';
 
 class NativeWindow extends WindowEvents {
   NativeWindow() {
@@ -29,15 +28,6 @@ class NativeWindow extends WindowEvents {
   void onPaint(int hdc, Pointer<RECT> pRect) {
     FillRect(hdc, pRect, COLOR_WINDOW);
   }
-
-  void center() {
-    final thisRect = rect;
-    rect = centredOfScreenRect(
-      thisRect.width,
-      thisRect.height,
-    );
-  }
-
 
   void _createWindowHidden() {
     // this pointer is used in the main NativeApp.wndProc
