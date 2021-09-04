@@ -29,3 +29,8 @@ final _gdi32 = DynamicLibrary.open('gdi32.dll');
 
 final FillPath =
     _gdi32.lookupFunction<Int32 Function(Int32), int Function(int)>('FillPath');
+
+final _user32 = DynamicLibrary.open('User32.dll');
+
+final GetWindowLongPtr =
+_user32.lookupFunction<IntPtr Function(IntPtr, Int32), int Function(int, int)>('GetWindowLongPtrW');

@@ -67,10 +67,6 @@ abstract class Hwnd {
     return FALSE; // stop enums
   }
 
-  static AsyncHwnd fromMainWindow() {
-    return AsyncHwnd(Hwnd.fromProcessID(GetCurrentProcessId())!.handle);
-  }
-
   void destroy() => DestroyWindow(handle);
 
   void hide() => ShowWindowAsync(handle, SW_HIDE);
@@ -79,7 +75,22 @@ abstract class Hwnd {
 
   void minimize() => ShowWindowAsync(handle, SW_SHOWMINIMIZED);
 
+  void maximize() => ShowWindowAsync(handle, SW_SHOWMAXIMIZED);
+
+  void restore() => ShowWindowAsync(handle, SW_RESTORE);
+
   void focused() => SetFocus(handle);
+
+  bool get isMaximized {
+    final place = calloc<WINDOWPLACEMENT>()
+      ..ref.length = sizeOf<WINDOWPLACEMENT>();
+    try {
+      GetWindowPlacement(handle, place);
+      return place.ref.showCmd == SW_SHOWMAXIMIZED;
+    } finally  {
+      free(place);
+    }
+  }
 
   String get text {
     final pText = calloc.allocate<Utf16>(MAX_PATH * 2);
@@ -157,6 +168,10 @@ abstract class Hwnd {
     );
   }
 
+  set style(WindowStyle style) {
+    SetWindowLongPtr(handle, GWL_STYLE , style.style);
+  }
+
   set parent(Hwnd newParent) => SetParent(handle, newParent.handle);
 
   Hwnd? _childContent;
@@ -195,41 +210,78 @@ class EnumWindowsData extends Struct {
 }
 
 class AsyncHwnd extends Hwnd {
+  static AsyncHwnd fromMainWindow() {
+    return AsyncHwnd(Hwnd.fromProcessID(GetCurrentProcessId())!.handle);
+  }
+
   @override
   final int handle;
 
   AsyncHwnd(this.handle) {
-    Isolate.spawn(_thread, port.sendPort);
-    port.listen((message) {
+    Isolate.spawn(_thread, _port.sendPort);
+    _port.listen((message) {
       if (message is SendPort) {
         threadPort = message;
         threadPort!.send(handle);
-      } else if (message == 'ready') {
-        _ready.complete();
+      }
+
+      switch(message) {
+        case 'sizeReady':
+          _sizeReady!.complete();
+          break;
+        case 'rectReady':
+          _sizeReady!.complete();
+          break;
+        case 'styleReady':
+          _styleReady!.complete();
+          break;
+        case 'ready':
+          _ready.complete();
+          break;
       }
     });
   }
 
-  var _ready = Completer();
+  final _ready = Completer();
 
-  Future<void> get ready => _ready.future;
+  Completer get ready => _ready;
 
-  @override
-  set rect(Rect newRect) => threadPort!.send(newRect);
+  Completer? _sizeReady;
 
-  @override
-  set size(Size newSize) => threadPort!.send(newSize);
+  Future<void> sizeAsync(Size size, {bool center = false}) async {
+    _sizeReady = Completer();
+    final sizeCondition = center ? _SizeCenter(size.width, size.height) : size;
+    threadPort!.send(sizeCondition);
+    await _sizeReady!.future;
+    _sizeReady = null;
+  }
 
+  Completer? _rectReady;
 
-  final port = ReceivePort();
+  Future<void> rectAsync(Rect rect) async {
+    _rectReady = Completer();
+    threadPort!.send(rect);
+    await _rectReady!.future;
+    _rectReady = null;
+  }
+
+  Completer? _styleReady;
+
+  Future<void> styleAsync(WindowStyle style) async {
+    _styleReady = Completer();
+    threadPort!.send(_Style(style.style));
+    await _styleReady!.future;
+    _styleReady = null;
+  }
+
+  final _port = ReceivePort();
 
   void dispose() {
     threadPort!.send('close');
-    port.close();
+    _port.close();
   }
 
   SendPort? threadPort;
-
 
   static void _thread(SendPort port) {
     final receive = ReceivePort();
@@ -238,15 +290,105 @@ class AsyncHwnd extends Hwnd {
 
     receive.listen((message) {
       if (message is Size) {
-        wnd.size = message;
-      } else if (message is Rect){
+        final newSize = message;
+        if (message is _SizeCenter) {
+          final oldRect = wnd.rect;
+          wnd.rect = Rect.fromXYWH(
+            oldRect.left + (oldRect.width - newSize.width) ~/ 2,
+            oldRect.top + (oldRect.height - newSize.height) ~/ 2,
+            newSize.width,
+            newSize.height,
+          );
+        } else {
+          wnd.size = message;
+        }
+        port.send('sizeReady');
+      } else if (message is Rect) {
         wnd.rect = message;
+        port.send('rectReady');
+      } else if (message is _Style) {
+        wnd.style = WindowStyle(message.style);
+        port.send('styleReady');
       } else if (message is int) {
         wnd = Hwnd.fomHandle(message);
         port.send('ready');
-      } else if(message == 'close'){
+      } else if (message == 'close') {
         receive.close();
       }
     });
   }
+}
+
+class _SizeCenter extends Size {
+  _SizeCenter(int width, int height) : super(width, height);
+}
+
+class _Style {
+  final int style;
+
+  _Style(this.style);
+}
+
+class WindowStyle {
+  WindowStyle([this._style = 0]);
+
+  static WindowStyle get none {
+    return WindowStyle(0);
+  }
+
+  static WindowStyle get dialog {
+    return mainWindow
+      ..enableMaximize = false
+      ..enableMinimize;
+  }
+
+  static WindowStyle get mainWindow {
+    return WindowStyle(WS_OVERLAPPEDWINDOW);
+  }
+
+  int _style;
+
+  int get style => _style;
+
+  set visibleButtons(bool visible) {
+    if (visible) {
+      _style |= WS_SYSMENU;
+    } else {
+      _style &= ~WS_SYSMENU;
+    }
+  }
+
+  bool get visibleButtons => (_style & WS_SYSMENU) == WS_SYSMENU;
+
+  set enableResize(bool enable) {
+    if (enable) {
+      _style |= WS_THICKFRAME;
+    } else {
+      _style &= ~WS_THICKFRAME;
+    }
+  }
+
+  bool get enableResize => (_style & WS_THICKFRAME) == WS_THICKFRAME;
+
+  set enableMinimize(bool enable) {
+    if (enable) {
+      _style |= WS_MINIMIZEBOX;
+    } else {
+      _style &= ~WS_MINIMIZEBOX;
+    }
+  }
+
+  bool get enableMinimize => (_style & WS_MINIMIZEBOX) == WS_MINIMIZEBOX;
+
+  set enableMaximize(bool enable) {
+    if (enable) {
+      _style |= WS_MAXIMIZEBOX;
+    } else {
+      _style &= ~WS_MAXIMIZEBOX;
+    }
+  }
+
+  bool get enableMaximize => (_style & WS_MAXIMIZEBOX) == WS_MAXIMIZEBOX;
+
+  bool enableClose = true;
 }

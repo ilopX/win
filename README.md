@@ -2,7 +2,7 @@
 
 Connecting the Windows platform with the beautiful Dart language. Can be used inside or without flutter application.
 
-### Peculiarities:
+### Features:
  - Not cross-platform. (`Windows` only)
  - Doesn't require `c++` (everything is a `Dart`).
 

@@ -1,47 +1,53 @@
+import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_window_man/view.dart';
 import 'package:win/tools/hwnd.dart';
 import 'package:win/tools/primitives.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(App());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
-
+class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.deepPurple,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: Scaffold(
+        backgroundColor: Colors.lightBlue,
+        body: Settings(),
+      ),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
-  final String title;
-
+class Settings extends StatefulWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _SettingsState createState() => _SettingsState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  final hwnd = Hwnd.fromMainWindow();
+class _SettingsState extends State<Settings> {
+  var _checkCenter = true;
 
-  void _increment() {
-    final w = hwnd.size;
-    hwnd.size = Size(w.width + 10, w.height + 10);
-    hwnd.center();
+  @override
+  Widget build(BuildContext context) {
+    if (hwnd.ready.isCompleted) {
+      return buildView();
+    } else {
+      return Center(child: CircularProgressIndicator());
+    }
   }
 
-  void _decrement() {
-    final w = hwnd.size;
-    hwnd.size = Size(w.width + -10, w.height - 10);
-    hwnd.center();
+  late AsyncHwnd hwnd;
+
+  @override
+  void initState() {
+    hwnd = AsyncHwnd.fromMainWindow();
+    hwnd.ready.future.then((value) => setState(() {}));
+    super.initState();
   }
 
   @override
@@ -50,26 +56,70 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            FloatingActionButton(
-              onPressed: _decrement,
-              tooltip: 'Increment',
-              child: const Icon(Icons.remove),
-            ),
-            const SizedBox(width: 10),
-            FloatingActionButton(
-              onPressed: _increment,
-              child: const Icon(Icons.add),
-            ),
-          ],
-        ),
-      ),
+  Widget buildView() {
+    return SettingsView(
+      initWindowTitle: hwnd.text,
+      initResizeToCenter: _checkCenter,
+      initWidowsStyleName: 'MainWindow',
+      onMinimize: () {
+        hwnd.minimize();
+      },
+      onMaximize: () {
+        if (hwnd.isMaximized) {
+          hwnd.restore();
+        } else {
+          hwnd.maximize();
+        }
+      },
+      onClose: () {
+        hwnd.hide();
+        Future.delayed(Duration(seconds: 1), hwnd.show);
+      },
+      onDrag: (e) {
+        print('onDrag');
+      },
+      onTitleChange: (text) {
+        hwnd.text = text;
+      },
+      onSizeInc: () async {
+        final currSize = hwnd.size;
+        await hwnd.sizeAsync(
+          Size(currSize.width + 10, currSize.height + 10),
+          center: _checkCenter,
+        );
+      },
+      onSizeDec: () {
+        final currSize = hwnd.size;
+        hwnd.sizeAsync(
+          Size(currSize.width - 10, currSize.height - 10),
+          center: _checkCenter,
+        );
+      },
+      onCheckCenter: (val) {
+        _checkCenter = val;
+      },
+      onToCenter: () {
+        hwnd.center();
+      },
+      onWindowStyle: (String styleName, List<String> buttons) {
+        late WindowStyle style;
+        switch(styleName) {
+          case 'None':
+            style = WindowStyle.none;
+            break;
+          case 'Dialog':
+            style = WindowStyle.dialog;
+            break;
+          case 'MainWindow':
+            style = WindowStyle.mainWindow;
+            style.enableMinimize = buttons.contains('minimize');
+            style.enableMaximize = buttons.contains('maximize');
+            style.enableClose = buttons.contains('close');
+            break;
+        }
+        hwnd.styleAsync(style);
+
+      },
     );
   }
 }
