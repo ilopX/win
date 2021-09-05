@@ -1,10 +1,10 @@
-import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_window_man/view.dart';
-import 'package:win/tools/hwnd.dart';
-import 'package:win/tools/primitives.dart';
+
+import 'package:win/window.dart';
 
 void main() {
   runApp(App());
@@ -42,30 +42,6 @@ class _SettingsState extends State<Settings> {
     }
   }
 
-  static late final WindowStyle noneWindowStyle;
-  static late final WindowStyle dialogWindowStyle;
-  static late final WindowStyle mainWindowStyle;
-
-  static final hwnd = AsyncHwnd.fromMainWindow();
-
-  @override
-  void initState() {
-    hwnd.ready.future.then((_) {
-      noneWindowStyle = hwnd.style
-        ..enableResize = false
-        ..visibleTitle = false;
-
-      dialogWindowStyle = hwnd.style
-        ..enableResize = false
-        ..enableMinimize = false
-        ..enableMaximize = false;
-
-      mainWindowStyle = hwnd.style;
-      setState(() {});
-    });
-    super.initState();
-  }
-
   Widget buildView() {
     return SettingsView(
       initWindowTitle: hwnd.text,
@@ -82,8 +58,7 @@ class _SettingsState extends State<Settings> {
         }
       },
       onClose: () {
-        hwnd.hide();
-        Future.delayed(Duration(seconds: 1), hwnd.show);
+        exit(0);
       },
       onMouseEvent: (e) {
         if (e is PointerDownEvent) {
@@ -116,24 +91,24 @@ class _SettingsState extends State<Settings> {
         hwnd.center();
       },
       onWindowStyle: (String styleName) async {
-        late final WindowStyle style;
+        late final WindowStyle newStyle;
         switch(styleName) {
           case 'None':
-            style = noneWindowStyle;
+            newStyle = noneWindowStyle;
             break;
           case 'Dialog':
-            style = dialogWindowStyle;
+            newStyle = dialogWindowStyle;
             break;
           case 'MainWindow':
-            style = mainWindowStyle;
+            newStyle = mainWindowStyle;
             break;
+          default:
+            return;
         }
 
-        // updateSize
-        var currSize = hwnd.size;
-        hwnd.style = style;
-        await hwnd.sizeAsync(Size(currSize.width - 1, currSize.height - 1));
-        await hwnd.sizeAsync(Size(currSize.width, currSize.height));
+        hwnd.forceSizeUpdate(() {
+          hwnd.style = newStyle;
+        });
       },
       onTitleButton: (List<String> buttons) {
         hwnd.style = mainWindowStyle
@@ -142,5 +117,29 @@ class _SettingsState extends State<Settings> {
           ..enableClose = buttons.contains('close');
       },
     );
+  }
+
+  static late final WindowStyle noneWindowStyle;
+  static late final WindowStyle dialogWindowStyle;
+  static late final WindowStyle mainWindowStyle;
+
+  static final hwnd = AsyncHwnd.fromMainWindow();
+
+  @override
+  void initState() {
+    hwnd.ready.future.then((_) {
+      noneWindowStyle = hwnd.style
+        ..enableResize = false
+        ..visibleTitle = false;
+
+      dialogWindowStyle = hwnd.style
+        ..enableResize = false
+        ..enableMinimize = false
+        ..enableMaximize = false;
+
+      mainWindowStyle = hwnd.style;
+      setState(() {});
+    });
+    super.initState();
   }
 }

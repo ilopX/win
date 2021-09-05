@@ -1,4 +1,6 @@
+export 'tools/window_style.dart';
 export 'tools/hwnd.dart';
+export 'tools/async_hwnd.dart';
 export 'tools/primitives.dart';
 
 export 'window/native_app.dart';

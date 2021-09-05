@@ -1,12 +1,9 @@
-import 'dart:async';
 import 'dart:ffi';
-import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
-import 'package:win/win32_add.dart';
 import 'package:win32/win32.dart';
 
-import 'primitives.dart';
+import 'package:win/window.dart';
 
 class _Hwnd extends Hwnd {
   @override
@@ -169,7 +166,7 @@ abstract class Hwnd {
   }
 
   set style(WindowStyle style) {
-    SetWindowLongPtr(handle, GWL_STYLE , style.style);
+    SetWindowLongPtr(handle, GWL_STYLE , style.flags);
 
     final closeButtonStyle =  style.enableClose
         ? MF_ENABLED
@@ -267,167 +264,4 @@ class EnumWindowsData extends Struct {
 
   @IntPtr()
   external int process_id;
-}
-
-class AsyncHwnd extends Hwnd {
-  static AsyncHwnd fromMainWindow() {
-    return AsyncHwnd(Hwnd.fromProcessID(GetCurrentProcessId())!.handle);
-  }
-
-  @override
-  final int handle;
-
-  AsyncHwnd(this.handle) {
-    Isolate.spawn(_thread, _port.sendPort);
-    _port.listen((message) {
-      if (message is SendPort) {
-        threadPort = message;
-        threadPort!.send(handle);
-      }
-
-      switch(message) {
-        case 'sizeReady':
-          _sizeReady!.complete();
-          break;
-        case 'rectReady':
-          _sizeReady!.complete();
-          break;
-        case 'ready':
-          _ready.complete();
-          break;
-      }
-    });
-  }
-
-  final _ready = Completer();
-
-  Completer get ready => _ready;
-
-  Completer? _sizeReady;
-
-  Future<void> sizeAsync(Size size, {bool center = false}) async {
-    _sizeReady = Completer();
-    final sizeCondition = center ? _SizeCenter(size.width, size.height) : size;
-    threadPort!.send(sizeCondition);
-    await _sizeReady!.future;
-    _sizeReady = null;
-  }
-
-  Completer? _rectReady;
-
-  Future<void> rectAsync(Rect rect) async {
-    _rectReady = Completer();
-    threadPort!.send(rect);
-    await _rectReady!.future;
-    _rectReady = null;
-  }
-
-
-  final _port = ReceivePort();
-
-  void dispose() {
-    threadPort!.send('close');
-    _port.close();
-  }
-
-  SendPort? threadPort;
-
-  static void _thread(SendPort port) {
-    final receive = ReceivePort();
-    port.send(receive.sendPort);
-    late Hwnd wnd;
-
-    receive.listen((message) {
-      if (message is Size) {
-        final newSize = message;
-        if (message is _SizeCenter) {
-          final oldRect = wnd.rect;
-          wnd.rect = Rect.fromXYWH(
-            oldRect.left + (oldRect.width - newSize.width) ~/ 2,
-            oldRect.top + (oldRect.height - newSize.height) ~/ 2,
-            newSize.width,
-            newSize.height,
-          );
-        } else {
-          wnd.size = message;
-        }
-        port.send('sizeReady');
-      } else if (message is Rect) {
-        wnd.rect = message;
-        port.send('rectReady');
-      } else if (message is int) {
-        wnd = Hwnd.fomHandle(message);
-        port.send('ready');
-      } else if (message == 'close') {
-        receive.close();
-      }
-    });
-  }
-}
-
-class _SizeCenter extends Size {
-  _SizeCenter(int width, int height) : super(width, height);
-}
-
-class WindowStyle {
-  WindowStyle([this._style = 0]);
-
-
-  int _style;
-
-  int get style => _style;
-
-  set visibleButtons(bool visible) {
-    if (visible) {
-      _style |= WS_SYSMENU;
-    } else {
-      _style &= ~WS_SYSMENU;
-    }
-  }
-
-  bool get visibleButtons => (_style & WS_SYSMENU) == WS_SYSMENU;
-
-  set enableResize(bool enable) {
-    if (enable) {
-      _style |= WS_THICKFRAME;
-    } else {
-      _style &= ~WS_THICKFRAME;
-    }
-  }
-
-  bool get enableResize => (_style & WS_THICKFRAME) == WS_THICKFRAME;
-
-  set enableMinimize(bool enable) {
-    if (enable) {
-      _style |= WS_MINIMIZEBOX;
-    } else {
-      _style &= ~WS_MINIMIZEBOX;
-    }
-  }
-
-  bool get enableMinimize => (_style & WS_MINIMIZEBOX) == WS_MINIMIZEBOX;
-
-  set enableMaximize(bool enable) {
-    if (enable) {
-      _style |= WS_MAXIMIZEBOX;
-    } else {
-      _style &= ~WS_MAXIMIZEBOX;
-    }
-  }
-
-  bool get enableMaximize => (_style & WS_MAXIMIZEBOX) == WS_MAXIMIZEBOX;
-
-  bool enableClose = true;
-
-  set visibleTitle(bool enable) {
-    if (enable) {
-      _style |= WS_CAPTION;
-    } else {
-      _style &= ~WS_CAPTION;
-    }
-  }
-
-  bool get visibleTitle => (_style & WS_CAPTION) == WS_CAPTION;
-
-  //bool enableClose = true;
 }

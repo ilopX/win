@@ -8,11 +8,9 @@ Future main() async {
   final notepadProcess = await WindowsProcess.run(cmd: r'notepad', show: false);
   final notepadWindow = notepadProcess.topWindow;
 
-  SetWindowLongPtr(
-    notepadWindow!.handle,
-    GWL_STYLE,
-    WS_CHILD | WS_POPUPWINDOW,
-  );
+  notepadWindow!.style = WindowStyle()
+    ..isChild = true
+    ..isPopup = true;
 
   NativeWindow()
     ..childContent = notepadWindow
