@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_window_man/view.dart';
@@ -41,19 +42,28 @@ class _SettingsState extends State<Settings> {
     }
   }
 
-  late AsyncHwnd hwnd;
+  static late final WindowStyle noneWindowStyle;
+  static late final WindowStyle dialogWindowStyle;
+  static late final WindowStyle mainWindowStyle;
+
+  static final hwnd = AsyncHwnd.fromMainWindow();
 
   @override
   void initState() {
-    hwnd = AsyncHwnd.fromMainWindow();
-    hwnd.ready.future.then((value) => setState(() {}));
-    super.initState();
-  }
+    hwnd.ready.future.then((_) {
+      noneWindowStyle = hwnd.style
+        ..enableResize = false
+        ..visibleTitle = false;
 
-  @override
-  void dispose() {
-    hwnd.dispose();
-    super.dispose();
+      dialogWindowStyle = hwnd.style
+        ..enableResize = false
+        ..enableMinimize = false
+        ..enableMaximize = false;
+
+      mainWindowStyle = hwnd.style;
+      setState(() {});
+    });
+    super.initState();
   }
 
   Widget buildView() {
@@ -75,8 +85,12 @@ class _SettingsState extends State<Settings> {
         hwnd.hide();
         Future.delayed(Duration(seconds: 1), hwnd.show);
       },
-      onDrag: (e) {
-        print('onDrag');
+      onMouseEvent: (e) {
+        if (e is PointerDownEvent) {
+          hwnd.beginDrag();
+        } else if (e is PointerMoveEvent) {
+          hwnd.drag();
+        }
       },
       onTitleChange: (text) {
         hwnd.text = text;
@@ -101,24 +115,31 @@ class _SettingsState extends State<Settings> {
       onToCenter: () {
         hwnd.center();
       },
-      onWindowStyle: (String styleName, List<String> buttons) {
-        late WindowStyle style;
+      onWindowStyle: (String styleName) async {
+        late final WindowStyle style;
         switch(styleName) {
           case 'None':
-            style = WindowStyle.none;
+            style = noneWindowStyle;
             break;
           case 'Dialog':
-            style = WindowStyle.dialog;
+            style = dialogWindowStyle;
             break;
           case 'MainWindow':
-            style = WindowStyle.mainWindow;
-            style.enableMinimize = buttons.contains('minimize');
-            style.enableMaximize = buttons.contains('maximize');
-            style.enableClose = buttons.contains('close');
+            style = mainWindowStyle;
             break;
         }
-        hwnd.styleAsync(style);
 
+        // updateSize
+        var currSize = hwnd.size;
+        hwnd.style = style;
+        await hwnd.sizeAsync(Size(currSize.width - 1, currSize.height - 1));
+        await hwnd.sizeAsync(Size(currSize.width, currSize.height));
+      },
+      onTitleButton: (List<String> buttons) {
+        hwnd.style = mainWindowStyle
+          ..enableMaximize = buttons.contains('maximize')
+          ..enableMinimize = buttons.contains('minimize')
+          ..enableClose = buttons.contains('close');
       },
     );
   }

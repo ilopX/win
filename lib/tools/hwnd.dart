@@ -170,6 +170,20 @@ abstract class Hwnd {
 
   set style(WindowStyle style) {
     SetWindowLongPtr(handle, GWL_STYLE , style.style);
+
+    final closeButtonStyle =  style.enableClose
+        ? MF_ENABLED
+        : ( MF_DISABLED | MF_GRAYED);
+
+    EnableMenuItem(
+      GetSystemMenu(handle, FALSE),
+      SC_CLOSE,
+      MF_BYCOMMAND | closeButtonStyle,
+    );
+  }
+
+  WindowStyle get style {
+    return WindowStyle(GetWindowLongPtr(handle, GWL_STYLE));
   }
 
   set parent(Hwnd newParent) => SetParent(handle, newParent.handle);
@@ -198,6 +212,52 @@ abstract class Hwnd {
     child.rect = Rect(0, 0, thisSize.width, thisSize.height);
     _childContent = child;
     _childContent!.show();
+  }
+
+  var _moveDownPoint = Point(0, 0);
+
+  void beginDrag() {
+    final p = calloc<POINT>();
+    try {
+      if (GetCursorPos(p) == 0) {
+        throw 'GetCursorPos fail.';
+      }
+      ScreenToClient(handle, p);
+    } finally {
+      free(p);
+    }
+
+    var frameSize = 0;
+    var caption = 0;
+
+    final thisStyle = style;
+    if (thisStyle.visibleTitle) {
+      caption = GetSystemMetrics(SM_CYCAPTION) + 1;
+    }
+
+    if (thisStyle.enableResize) {
+      frameSize = GetSystemMetrics(SM_CYSIZEFRAME) +
+          GetSystemMetrics(SM_CYEDGE) * 2 - 1;
+    }
+
+    _moveDownPoint = Point(
+      p.ref.x + frameSize,
+      p.ref.y + frameSize + caption,
+    );
+  }
+
+  void drag() {
+    final p = calloc<POINT>();
+    try {
+      if (GetCursorPos(p) != 0) {
+        var x =  p.ref.x - _moveDownPoint.x;
+        var y = p.ref.y - _moveDownPoint.y;
+
+        pos = Point(x, y);
+      }
+    } finally {
+      free(p);
+    }
   }
 }
 
@@ -232,9 +292,6 @@ class AsyncHwnd extends Hwnd {
         case 'rectReady':
           _sizeReady!.complete();
           break;
-        case 'styleReady':
-          _styleReady!.complete();
-          break;
         case 'ready':
           _ready.complete();
           break;
@@ -265,14 +322,6 @@ class AsyncHwnd extends Hwnd {
     _rectReady = null;
   }
 
-  Completer? _styleReady;
-
-  Future<void> styleAsync(WindowStyle style) async {
-    _styleReady = Completer();
-    threadPort!.send(_Style(style.style));
-    await _styleReady!.future;
-    _styleReady = null;
-  }
 
   final _port = ReceivePort();
 
@@ -306,9 +355,6 @@ class AsyncHwnd extends Hwnd {
       } else if (message is Rect) {
         wnd.rect = message;
         port.send('rectReady');
-      } else if (message is _Style) {
-        wnd.style = WindowStyle(message.style);
-        port.send('styleReady');
       } else if (message is int) {
         wnd = Hwnd.fomHandle(message);
         port.send('ready');
@@ -323,28 +369,9 @@ class _SizeCenter extends Size {
   _SizeCenter(int width, int height) : super(width, height);
 }
 
-class _Style {
-  final int style;
-
-  _Style(this.style);
-}
-
 class WindowStyle {
   WindowStyle([this._style = 0]);
 
-  static WindowStyle get none {
-    return WindowStyle(0);
-  }
-
-  static WindowStyle get dialog {
-    return mainWindow
-      ..enableMaximize = false
-      ..enableMinimize;
-  }
-
-  static WindowStyle get mainWindow {
-    return WindowStyle(WS_OVERLAPPEDWINDOW);
-  }
 
   int _style;
 
@@ -391,4 +418,16 @@ class WindowStyle {
   bool get enableMaximize => (_style & WS_MAXIMIZEBOX) == WS_MAXIMIZEBOX;
 
   bool enableClose = true;
+
+  set visibleTitle(bool enable) {
+    if (enable) {
+      _style |= WS_CAPTION;
+    } else {
+      _style &= ~WS_CAPTION;
+    }
+  }
+
+  bool get visibleTitle => (_style & WS_CAPTION) == WS_CAPTION;
+
+  //bool enableClose = true;
 }

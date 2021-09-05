@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class SettingsView extends StatefulWidget {
@@ -9,13 +10,15 @@ class SettingsView extends StatefulWidget {
     required this.onMinimize,
     required this.onMaximize,
     required this.onClose,
-    required this.onDrag,
+    required this.onMouseEvent,
     required this.onTitleChange,
     required this.onSizeInc,
     required this.onSizeDec,
     required this.onCheckCenter,
     required this.onToCenter,
     required this.onWindowStyle,
+    required this.onTitleButton,
+
   }) : super(key: key);
 
   final String initWindowTitle;
@@ -30,7 +33,7 @@ class SettingsView extends StatefulWidget {
 
   final Function() onClose;
 
-  final Function(PointerDownEvent) onDrag;
+  final Function(PointerEvent) onMouseEvent;
 
   final Function(String) onTitleChange;
 
@@ -42,7 +45,9 @@ class SettingsView extends StatefulWidget {
 
   final Function() onToCenter;
 
-  final Function(String, List<String>) onWindowStyle;
+  final Function(String) onWindowStyle;
+
+  final Function(List<String>) onTitleButton;
 
   @override
   State<SettingsView> createState() => _SettingsViewState();
@@ -63,8 +68,8 @@ class _SettingsViewState extends State<SettingsView> {
         buildResize(),
         _____,
         buildToCenter(),
-        // _____,
-        // buildWindowStyle(),
+        _____,
+        buildWindowStyle(),
       ],
     );
   }
@@ -105,7 +110,9 @@ class _SettingsViewState extends State<SettingsView> {
 
   Widget buildDragMe() {
     return Listener(
-      onPointerDown: widget.onDrag,
+      onPointerDown: widget.onMouseEvent,
+      onPointerUp: widget.onMouseEvent,
+      onPointerMove: widget.onMouseEvent,
       child: Container(
         alignment: Alignment.center,
         width: 300,
@@ -216,22 +223,19 @@ class _SettingsViewState extends State<SettingsView> {
                 : Colors.blueGrey),
         child: Text(name),
         onPressed: () {
+          if (windowStyleName == name) {
+            return;
+          }
           setState(() {
             windowStyleName = name;
           });
-          sendButtonStyle();
+          widget.onWindowStyle(windowStyleName);
         },
       ),
     );
   }
 
-  void sendButtonStyle() {
-    widget.onWindowStyle(windowStyleName, [
-      _minimizeButton ? 'minimize' : '',
-      _maximizeButton ? 'maximize' : '',
-      _closeButton ? 'close' : '',
-    ]);
-  }
+  var _buttons = <String>[];
 
   var _minimizeButton = true;
   var _maximizeButton = true;
@@ -272,6 +276,21 @@ class _SettingsViewState extends State<SettingsView> {
         ),
       ],
     );
+  }
+
+  void sendButtonStyle() {
+    final newButtons = [
+      _minimizeButton ? 'minimize' : '',
+      _maximizeButton ? 'maximize' : '',
+      _closeButton ? 'close' : '',
+    ];
+
+    if (listEquals(_buttons, newButtons)) {
+      return;
+    }
+
+    _buttons = newButtons;
+    widget.onTitleButton(_buttons);
   }
 
   Widget switchButtonIcon({
