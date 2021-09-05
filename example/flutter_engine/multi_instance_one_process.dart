@@ -4,7 +4,7 @@ import 'package:win/window.dart';
 
 void main(List<String> args) {
   final bundlePath = FlutterFinder.searchBundleFolder('../../empty_flutter_app');
-  final flutterDllPath = FlutterFinder.searchDllFile();
+  final flutterDllPath = FlutterFinder.searchDllFile('../../empty_flutter_app/flutter_windows_2_2.dll');
 
   final bundle = Bundle.fromSourceDir(bundlePath);
   final flutterApi = FlutterApi.load(flutterDllPath);

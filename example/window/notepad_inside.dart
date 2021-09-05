@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:win32/win32.dart';
 import 'package:win/window.dart';
 import 'package:win/wrapper/windows_process.dart';
 
