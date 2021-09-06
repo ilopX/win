@@ -41,7 +41,7 @@ class AsyncHwnd extends Hwnd {
     late Hwnd wnd;
 
     receive.listen((message) {
-      switch(message.runtimeType) {
+      switch (message.runtimeType) {
         case Size:
           wnd.size = message;
           port.send('sizeReady');
@@ -59,34 +59,18 @@ class AsyncHwnd extends Hwnd {
           port.send('sizeReady');
           return;
 
-      // case Size:
-      //   wnd.size = message;
-      //   break;
-      //
-      // case Size:
-      //   wnd.size = message;
-      //   break;
-      //
-      // case Size:
-      //   wnd.size = message;
-      //   break;
+        case Rect:
+          wnd.rect = message;
+          port.send('rectReady');
+          return;
+
+        case int:
+          wnd = Hwnd.fomHandle(message);
+          port.send('ready');
+          return;
       }
-      // if (message is Size) {
-      //   final newSize = message;
-      //   if (message is _SizeAndCenter) {
-      //     wnd.rect = wnd.rect.centerTo(newSize);
-      //   } else {
-      //     wnd.size = newSize;
-      //   }
-      //   port.send('sizeReady');
-      // } else
-      if (message is Rect) {
-        wnd.rect = message;
-        port.send('rectReady');
-      } else if (message is int) {
-        wnd = Hwnd.fomHandle(message);
-        port.send('ready');
-      } else if (message == 'close') {
+
+      if (message == 'close') {
         receive.close();
       }
     });

@@ -4,10 +4,8 @@ import 'package:ffi/ffi.dart';
 import 'package:win32/win32.dart';
 import 'package:meta/meta.dart';
 
-import 'window_events.dart';
-import 'window_registry.dart';
+import 'package:win/window.dart';
 
-import 'native_app.dart';
 
 class NativeWindow extends WindowEvents {
   NativeWindow() {

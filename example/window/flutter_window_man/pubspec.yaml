@@ -13,7 +13,7 @@ dependencies:
     sdk: flutter
   win:
     path: ../../../
-  win32:
+  win32: 2.2.9
   cupertino_icons: ^1.0.2
 
 dev_dependencies:

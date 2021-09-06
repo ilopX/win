@@ -3,8 +3,7 @@ import 'dart:ffi';
 import 'package:ffi/ffi.dart';
 import 'package:win32/win32.dart';
 
-import 'native_app.dart';
-import 'window_events.dart';
+import 'package:win/window.dart';
 
 // ignore_for_file: invalid_use_of_protected_member
 
