@@ -1,5 +1,5 @@
 import 'package:meta/meta.dart';
-import '../tools/hwnd.dart';
+import '../wrapper/hwnd/hwnd.dart';
 import 'package:win/window/native_window.dart';
 
 import 'bundle.dart';

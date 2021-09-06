@@ -1,12 +1,10 @@
 import 'dart:ffi';
 
 import 'package:ffi/ffi.dart';
-import 'package:win/tools/hwnd.dart';
-import 'package:win/win32_add.dart';
-import '../tools/primitives.dart';
-import 'package:win/window/window_registry.dart';
 import 'package:meta/meta.dart';
 import 'package:win32/win32.dart';
+
+import 'package:win/window.dart';
 
 enum WindowState { destroy, hide, minimize, stayOpen }
 

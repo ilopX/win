@@ -3,7 +3,7 @@ import 'dart:ffi';
 import 'package:ffi/ffi.dart';
 import 'package:win32/win32.dart';
 
-import 'window_registry.dart';
+import 'package:win/window.dart';
 
 // ignore_for_file: invalid_use_of_protected_member
 // ignore_for_file: avoid_classes_with_only_static_members

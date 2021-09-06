@@ -41,6 +41,15 @@ class Rect {
     return pRect;
   }
 
+  Rect centerTo(Size newSize) {
+    return Rect.fromXYWH(
+      left + (width - newSize.width) ~/ 2,
+      top + (height - newSize.height) ~/ 2,
+      newSize.width,
+      newSize.height,
+    );
+  }
+
   @override
   String toString() => 'Rect('
       'left: $left, top: $top, '
