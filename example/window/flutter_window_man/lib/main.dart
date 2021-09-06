@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_window_man/view.dart';
 
 import 'package:win/window.dart';
-import 'package:win32/win32.dart';
 
 void main() {
   runApp(App());
@@ -95,11 +94,7 @@ class _SettingsState extends State<Settings> {
         late final WindowStyle newStyle;
         switch(styleName) {
           case 'None':
-
             newStyle = noneWindowStyle;
-            var lExStyle = GetWindowLongPtr(hwnd.handle, GWL_EXSTYLE);
-            lExStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
-            SetWindowLongPtr(hwnd.handle, GWL_EXSTYLE, lExStyle);
             break;
           case 'Dialog':
             newStyle = dialogWindowStyle;
