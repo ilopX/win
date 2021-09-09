@@ -35,6 +35,11 @@ abstract class WindowEvents extends Hwnd {
   }
 
   @protected
+  void onRestore() {
+
+  }
+
+  @protected
   void onFontChange() {}
 
   @protected
@@ -85,6 +90,13 @@ abstract class WindowEvents extends Hwnd {
   @protected
   int wndProc(int hWnd, int uMsg, int wParam, int lParam) {
     switch (uMsg) {
+      case WM_SYSCOMMAND:
+        switch(wParam) {
+          case SC_RESTORE:
+            onRestore();
+            break;
+        }
+        return 0;
       case WM_DESTROY:
         onDestroy();
         break;

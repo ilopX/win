@@ -27,6 +27,16 @@ class NativeApp {
   }
 
   static int wndProc(int hWnd, int uMsg, int wParam, int lParam) {
+    // if restore the app, then send message on child windows
+    if (uMsg == WM_SYSCOMMAND && wParam == SC_RESTORE && lParam != 1) {
+      WindowsRegistry.windows.forEach((wnd, window) {
+        if (wnd == hWnd) {
+          return;
+        }
+        SendMessage(wnd, WM_SYSCOMMAND, SC_RESTORE, 1);
+      });
+    }
+
     final windowEvent = WindowsRegistry.find(hWnd);
     final result = windowEvent?.wndProc(hWnd, uMsg, wParam, lParam);
     if (result != null && result != 0) {
