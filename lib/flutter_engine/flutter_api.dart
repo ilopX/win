@@ -13,6 +13,7 @@ class FlutterApi {
   final FuncControllerWindowProc controllerWndProc;
   final FuncControllerDestroy controllerDestroy;
   final FuncViewGetHWND viewGetHWND;
+  final FuncViewRedraw viewRedraw;
 
   FlutterApi._internal(
     this._createEngine,
@@ -22,6 +23,7 @@ class FlutterApi {
     this.controllerWndProc,
     this.controllerDestroy,
     this.viewGetHWND,
+    this.viewRedraw,
   );
 
   factory FlutterApi.load(String libPath) {
@@ -51,6 +53,9 @@ class FlutterApi {
     final viewGetHWND = dll.lookupFunction<CViewGetHWND, FuncViewGetHWND>(
         'FlutterDesktopViewGetHWND');
 
+    final viewRedraw = dll.lookupFunction<CViewRedraw, FuncViewRedraw>(
+        'FlutterDesktopViewControllerForceRedraw');
+
     return FlutterApi._internal(
       createEngine,
       createController,
@@ -59,6 +64,7 @@ class FlutterApi {
       controllerWndProc,
       destroyController,
       viewGetHWND,
+      viewRedraw,
     );
   }
 
@@ -110,6 +116,8 @@ typedef FuncControllerGetView = ViewRef Function(ControllerRef);
 typedef CViewGetHWND = Int32 Function(ViewRef);
 typedef FuncViewGetHWND = int Function(ViewRef);
 
+typedef CViewRedraw = Int32 Function(ViewRef);
+typedef FuncViewRedraw = int Function(ViewRef);
 // =============================================================================
 class EngineProperties extends Struct {
   // The path to the flutter_assets folder for the application to be run.

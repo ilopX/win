@@ -9,4 +9,8 @@ class FlutterView {
   int get nativeWindow {
     return _flutterApi.viewGetHWND(_refView);
   }
+
+  void forceRedraw() {
+    _flutterApi.viewRedraw(_refView);
+  }
 }

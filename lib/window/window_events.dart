@@ -35,6 +35,19 @@ abstract class WindowEvents extends Hwnd {
   }
 
   @protected
+  void onRestore() {
+
+  }
+
+  void onMinimize() {
+    if (WindowsRegistry.isMainWindow(handle)) {
+      WindowsRegistry.windows.values.skip(1).forEach((window) {
+        window.minimize();
+      });
+    }
+  }
+
+  @protected
   void onFontChange() {}
 
   @protected
@@ -85,6 +98,16 @@ abstract class WindowEvents extends Hwnd {
   @protected
   int wndProc(int hWnd, int uMsg, int wParam, int lParam) {
     switch (uMsg) {
+      case WM_SYSCOMMAND:
+        switch(wParam) {
+          case SC_RESTORE:
+            onRestore();
+            break;
+          case SC_MINIMIZE:
+            onMinimize();
+            break;
+        }
+        return 0;
       case WM_DESTROY:
         onDestroy();
         break;

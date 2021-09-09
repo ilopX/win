@@ -1,6 +1,5 @@
 import 'package:meta/meta.dart';
-import '../wrapper/hwnd/hwnd.dart';
-import 'package:win/window/native_window.dart';
+import 'package:win/window.dart';
 
 import 'bundle.dart';
 import 'flutter_api.dart';
