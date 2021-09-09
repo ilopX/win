@@ -14,15 +14,6 @@ class NativeWindow extends WindowEvents {
 
   @override
   @protected
-  void onCreate(int hWnd, CREATESTRUCT createInfo) {
-    super.onCreate(hWnd, createInfo);
-    if (!WindowsRegistry.isMainWindow(hWnd)) {
-      SetWindowLongPtr(hWnd, GWLP_HWNDPARENT, WindowsRegistry.mainWindowHandle);
-    }
-  }
-
-  @override
-  @protected
   void onPaint(int hdc, Pointer<RECT> pRect) {
     FillRect(hdc, pRect, COLOR_WINDOW);
   }
@@ -37,7 +28,7 @@ class NativeWindow extends WindowEvents {
     final pTitle = 'Window'.toNativeUtf16();
     try {
       final hWnd = CreateWindowEx(
-        WindowsRegistry.windows.isEmpty ? WS_EX_APPWINDOW : 0,
+        WindowsRegistry.windows.isEmpty ? WS_EX_APPWINDOW : WS_EX_TOOLWINDOW,
         pWindowClassName,
         pTitle,
         WindowsRegistry.windows.isEmpty

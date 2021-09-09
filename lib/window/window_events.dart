@@ -39,6 +39,14 @@ abstract class WindowEvents extends Hwnd {
 
   }
 
+  void onMinimize() {
+    if (WindowsRegistry.isMainWindow(handle)) {
+      WindowsRegistry.windows.values.skip(1).forEach((window) {
+        window.minimize();
+      });
+    }
+  }
+
   @protected
   void onFontChange() {}
 
@@ -94,6 +102,9 @@ abstract class WindowEvents extends Hwnd {
         switch(wParam) {
           case SC_RESTORE:
             onRestore();
+            break;
+          case SC_MINIMIZE:
+            onMinimize();
             break;
         }
         return 0;
